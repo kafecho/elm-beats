@@ -1,6 +1,8 @@
 require('./main.css');
 
+var AudioContext = window.AudioContext || window.webkitAudioContext;
 var audioContext = new AudioContext();
+
 var Elm = require('./App.elm');
 
 var samples = {};
