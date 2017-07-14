@@ -64,7 +64,7 @@ type alias Pattern =
 
 
 type alias Score =
-    List Pattern
+    Array Pattern
 
 
 
@@ -74,14 +74,15 @@ type alias Score =
 -}
 
 
-score : Score
-score =
-    [ Pattern Kick (Array.fromList [ 1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 1, 1, 0 ])
-    , Pattern Snare (Array.fromList [ 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0 ])
-    , Pattern HiHatClosed (Array.fromList [ 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 1 ])
-    , Pattern HiHatOpen (Array.fromList [ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0 ])
-    , Pattern Synth (Array.fromList [ 1, 0, 0, 1, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0, 0 ])
-    ]
+startingScore : Score
+startingScore =
+    Array.fromList
+        [ Pattern Kick (Array.fromList [ 1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 1, 1, 0 ])
+        , Pattern Snare (Array.fromList [ 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0 ])
+        , Pattern HiHatClosed (Array.fromList [ 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 1 ])
+        , Pattern HiHatOpen (Array.fromList [ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0 ])
+        , Pattern Synth (Array.fromList [ 1, 0, 0, 1, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0, 0 ])
+        ]
 
 
 port startAudioClock : () -> Cmd msg
@@ -137,9 +138,9 @@ loadScoreInstruments : Score -> Cmd msg
 loadScoreInstruments score =
     let
         commands =
-            List.map (\pattern -> loadInstrument pattern.instrument) score
+            Array.map (\pattern -> loadInstrument pattern.instrument) score
     in
-        Cmd.batch commands
+        Cmd.batch (Array.toList commands)
 
 
 elapsedTime : Maybe Float -> Float -> Float
@@ -180,18 +181,19 @@ findSemiQuaverIndex elapsed =
 
 
 type alias Model =
-    { startClockValue : Maybe Float, semiQuaverIndex : Maybe Int }
+    { score : Score, startClockValue : Maybe Float, semiQuaverIndex : Maybe Int }
 
 
 type Msg
     = Start
     | Stop
     | AudioClockUpdate Float
+    | OnClick Instrument Int Int
 
 
 init : String -> ( Model, Cmd Msg )
 init path =
-    ( { startClockValue = Nothing, semiQuaverIndex = Nothing }, loadScoreInstruments score )
+    ( { score = startingScore, startClockValue = Nothing, semiQuaverIndex = Nothing }, loadScoreInstruments startingScore )
 
 
 
@@ -210,13 +212,39 @@ schedulePatternPlayback index when pattern =
 {- Schedule the playback for the entire score, based on what each instrument is playing. -}
 
 
-scheduleScorePlayback : Int -> Float -> List Pattern -> Cmd Msg
+scheduleScorePlayback : Int -> Float -> Score -> Cmd Msg
 scheduleScorePlayback index when score =
     let
         commands =
-            List.map (\pattern -> schedulePatternPlayback index when pattern) score
+            Array.map (\pattern -> schedulePatternPlayback index when pattern) score
     in
-        Cmd.batch commands
+        Cmd.batch (Array.toList commands)
+
+
+toggleNote : Pattern -> Int -> Pattern
+toggleNote pattern noteIndex =
+    let
+        _ =
+            Debug.log "Note index" noteIndex
+
+        currentNote =
+            Array.get noteIndex pattern.notes |> Maybe.withDefault 0
+
+        newNote =
+            1 - currentNote
+
+        newNotes =
+            Array.set noteIndex newNote pattern.notes
+    in
+        Pattern pattern.instrument newNotes
+
+
+playNote : Int -> Instrument -> Cmd Msg
+playNote note instrument =
+    if (note == 1) then
+        playSample ( toString instrument, 0 )
+    else
+        Cmd.none
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -227,6 +255,40 @@ update msg model =
 
         Stop ->
             ( { model | startClockValue = Nothing }, stopAudioClock () )
+
+        OnClick instrument instrumentIndex noteIndex ->
+            let
+                _ =
+                    Debug.log "Instrument" instrument
+
+                _ =
+                    Debug.log "Instrument index" instrumentIndex
+
+                _ =
+                    Debug.log "Note index" noteIndex
+
+                pattern_maybe =
+                    Array.get instrumentIndex model.score
+
+                _ =
+                    Debug.log "Pattern_maybe" pattern_maybe
+
+                note_maybe =
+                    Maybe.andThen (\pattern -> Array.get noteIndex pattern.notes) pattern_maybe
+            in
+                case ( pattern_maybe, note_maybe ) of
+                    ( Just pattern, Just note ) ->
+                        let
+                            updatedPattern =
+                                toggleNote pattern noteIndex
+
+                            updatedScore =
+                                Array.set instrumentIndex updatedPattern model.score
+                        in
+                            ( { model | score = updatedScore }, Cmd.none )
+
+                    _ ->
+                        ( model, Cmd.none )
 
         AudioClockUpdate value ->
             {- So when get a clock tick, we find out which 16th note should be played. -}
@@ -239,7 +301,7 @@ update msg model =
 
                 command =
                     if (Just (index) /= model.semiQuaverIndex) then
-                        scheduleScorePlayback index (value - lateBy + delay) score
+                        scheduleScorePlayback index (value - lateBy + delay) model.score
                     else
                         Cmd.none
 
@@ -257,6 +319,23 @@ isPlaying model =
     model.startClockValue /= Nothing
 
 
+createCell : Instrument -> Int -> Int -> Int -> Html Msg
+createCell instrument instrumentIndex noteIndex flag =
+    td [ onClick (OnClick instrument instrumentIndex noteIndex) ] [ text (toString flag) ]
+
+
+render : Int -> Pattern -> Html Msg
+render instrumentIndex pattern =
+    let
+        notes =
+            pattern.notes
+
+        cells =
+            Array.indexedMap (createCell pattern.instrument instrumentIndex) notes
+    in
+        tr [] (Array.toList cells)
+
+
 view : Model -> Html Msg
 view model =
     div []
@@ -265,6 +344,7 @@ view model =
             [ button [ onClick Start, disabled (isPlaying model) ] [ text "Start" ]
             , button [ onClick Stop, disabled (not (isPlaying model)) ] [ text "Stop" ]
             ]
+        , div [] (Array.toList (Array.indexedMap render model.score))
         ]
 
 
