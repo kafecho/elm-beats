@@ -2,3 +2,14 @@ body {
   font-family: 'Source Sans Pro', 'Trebuchet MS', 'Lucida Grande', 'Bitstream Vera Sans', 'Helvetica Neue', sans-serif;
   font-size: 14px;
 }
+
+td{
+  width: 40px;
+  height: 40px;
+  border: 1px solid #666666;
+  background-color: #858585;
+}
+
+td.playOn{
+  background-color: #FED134;
+}

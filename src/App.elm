@@ -321,7 +321,7 @@ isPlaying model =
 
 createCell : Instrument -> Int -> Int -> Int -> Html Msg
 createCell instrument instrumentIndex noteIndex flag =
-    td [ onClick (OnClick instrument instrumentIndex noteIndex) ] [ text (toString flag) ]
+    td [ classList [ ( "playOn", flag == 1 ) ], onClick (OnClick instrument instrumentIndex noteIndex) ] []
 
 
 render : Int -> Pattern -> Html Msg
