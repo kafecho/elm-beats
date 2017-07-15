@@ -1,15 +1,43 @@
 body {
-  font-family: 'Source Sans Pro', 'Trebuchet MS', 'Lucida Grande', 'Bitstream Vera Sans', 'Helvetica Neue', sans-serif;
+  font-family: 'Helvetica Neue', 'Source Sans Pro', 'Trebuchet MS', 'Lucida Grande', 'Bitstream Vera Sans', sans-serif;
   font-size: 14px;
 }
 
 td{
-  width: 40px;
-  height: 40px;
   border: 1px solid #666666;
   background-color: #858585;
 }
 
-td.playOn{
+td.instrument-cell{
+  color: white;
+  padding-left: 10px;
+  padding-right: 10px;
+  text-align:center;
+  vertical-align:middle;
+}
+
+td.note-cell{
+  width: 50px;
+  height: 50px;
+}
+
+td.play-on{
   background-color: #FED134;
+}
+
+td.quarter-note-start{
+  border-left: 1px solid black!important;
+  //padding-left: 1px;
+  z-index: 10;
+}
+
+button{
+  width: 60px;
+  font-size: 14px;
+  padding: 10px;
+  border: none;
+  margin: 2px;
+  border: 1px solid grey;
+  margin-bottom: 3px;
+  //background-color: black;
 }

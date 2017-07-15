@@ -46,7 +46,10 @@ type Instrument
     | HiHatClosed
     | HiHatOpen
     | Snare
-    | Synth
+    | Clap
+    | Ride
+    | RimShot
+    | Cowbell
 
 
 
@@ -74,15 +77,17 @@ type alias Score =
 -}
 
 
+emptyPattern =
+    Array.repeat 16 0
+
+
+instruments =
+    [ Kick, Snare, HiHatClosed, HiHatOpen, Cowbell, Clap, Ride, RimShot ]
+
+
 startingScore : Score
 startingScore =
-    Array.fromList
-        [ Pattern Kick (Array.fromList [ 1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 1, 1, 0 ])
-        , Pattern Snare (Array.fromList [ 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0 ])
-        , Pattern HiHatClosed (Array.fromList [ 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 1 ])
-        , Pattern HiHatOpen (Array.fromList [ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0 ])
-        , Pattern Synth (Array.fromList [ 1, 0, 0, 1, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0, 0 ])
-        ]
+    Array.fromList (List.map (\instrument -> Pattern instrument emptyPattern) instruments)
 
 
 port startAudioClock : () -> Cmd msg
@@ -189,6 +194,7 @@ type Msg
     | Stop
     | AudioClockUpdate Float
     | OnClick Instrument Int Int
+    | Clear
 
 
 init : String -> ( Model, Cmd Msg )
@@ -256,6 +262,9 @@ update msg model =
         Stop ->
             ( { model | startClockValue = Nothing }, stopAudioClock () )
 
+        Clear ->
+            ( { model | score = startingScore }, Cmd.none )
+
         OnClick instrument instrumentIndex noteIndex ->
             let
                 _ =
@@ -284,8 +293,14 @@ update msg model =
 
                             updatedScore =
                                 Array.set instrumentIndex updatedPattern model.score
+
+                            playCommand =
+                                if ((not (isPlaying model)) && note == 0) then
+                                    playSample ( toString instrument, 0 )
+                                else
+                                    Cmd.none
                         in
-                            ( { model | score = updatedScore }, Cmd.none )
+                            ( { model | score = updatedScore }, playCommand )
 
                     _ ->
                         ( model, Cmd.none )
@@ -321,7 +336,12 @@ isPlaying model =
 
 createCell : Instrument -> Int -> Int -> Int -> Html Msg
 createCell instrument instrumentIndex noteIndex flag =
-    td [ classList [ ( "playOn", flag == 1 ) ], onClick (OnClick instrument instrumentIndex noteIndex) ] []
+    td
+        [ class "note-cell"
+        , classList [ ( "play-on", flag == 1 ), ( "quarter-note-start", noteIndex % 4 == 0 ) ]
+        , onClick (OnClick instrument instrumentIndex noteIndex)
+        ]
+        []
 
 
 render : Int -> Pattern -> Html Msg
@@ -330,19 +350,23 @@ render instrumentIndex pattern =
         notes =
             pattern.notes
 
-        cells =
-            Array.indexedMap (createCell pattern.instrument instrumentIndex) notes
+        instrumentCell =
+            td [ class "instrument-cell" ] [ text (toString pattern.instrument) ]
+
+        noteCells =
+            Array.toList (Array.indexedMap (createCell pattern.instrument instrumentIndex) notes)
     in
-        tr [] (Array.toList cells)
+        tr [] (instrumentCell :: noteCells)
 
 
 view : Model -> Html Msg
 view model =
     div []
-        [ div [] [ text "Elm Beats. Work in progress!!!" ]
+        [ div [] [ h1 [] [ text "Elm Beats!!!" ] ]
         , div []
             [ button [ onClick Start, disabled (isPlaying model) ] [ text "Start" ]
             , button [ onClick Stop, disabled (not (isPlaying model)) ] [ text "Stop" ]
+            , button [ onClick Clear ] [ text "Clear" ]
             ]
         , div [] (Array.toList (Array.indexedMap render model.score))
         ]
