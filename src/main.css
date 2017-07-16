@@ -1,6 +1,8 @@
 body {
-  font-family: 'Helvetica Neue', 'Source Sans Pro', 'Trebuchet MS', 'Lucida Grande', 'Bitstream Vera Sans', sans-serif;
+  font-family: 'Lucida Grande', 'Helvetica Neue', 'Source Sans Pro', 'Trebuchet MS',  'Bitstream Vera Sans', sans-serif;
   font-size: 14px;
+  background-color:  #666666;
+  color: #DFDFDF;
 }
 
 td{
@@ -9,11 +11,12 @@ td{
 }
 
 td.instrument-cell{
-  color: white;
-  padding-left: 10px;
-  padding-right: 10px;
+  color: #DFDFDF;
+  padding-left: 20px;
+  padding-right: 20px;
   text-align:center;
   vertical-align:middle;
+  //width: 70px;
 }
 
 td.note-cell{
@@ -32,6 +35,9 @@ td.quarter-note-start{
 }
 
 button{
+  background-color: white;
+  font-family: 'Lucida Grande';
+  color: black;
   width: 60px;
   font-size: 14px;
   padding: 10px;
@@ -40,4 +46,8 @@ button{
   border: 1px solid grey;
   margin-bottom: 3px;
   //background-color: black;
+}
+
+button:disabled{
+  color: grey;
 }
