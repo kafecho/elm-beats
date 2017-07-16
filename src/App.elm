@@ -13,27 +13,17 @@ import Html.Attributes exposing (..)
 import Array exposing (..)
 
 
+delay : Float
 delay =
     0.25
-
-
-
-{-
-   Tempo expressed in beats per minute
--}
-
-
-tempo : Float
-tempo =
-    95.0
 
 
 
 {- We only deal with 1 bar with a 4/4 signature -}
 
 
-barDuration : Float
-barDuration =
+computeBarDuration : Float -> Float
+computeBarDuration tempo =
     (4 * 60) / tempo
 
 
@@ -167,9 +157,12 @@ elapsedTime currentTime newTime =
 -}
 
 
-findSemiQuaverIndex : Float -> ( Int, Float )
-findSemiQuaverIndex elapsed =
+findSemiQuaverIndex : Float -> Float -> ( Int, Float )
+findSemiQuaverIndex tempo elapsed =
     let
+        barDuration =
+            computeBarDuration tempo
+
         nbTimes =
             floor (elapsed / barDuration)
 
@@ -186,7 +179,7 @@ findSemiQuaverIndex elapsed =
 
 
 type alias Model =
-    { score : Score, startClockValue : Maybe Float, semiQuaverIndex : Maybe Int }
+    { tempo : Float, score : Score, startClockValue : Maybe Float, semiQuaverIndex : Maybe Int }
 
 
 type Msg
@@ -195,11 +188,12 @@ type Msg
     | AudioClockUpdate Float
     | OnClick Instrument Int Int
     | Clear
+    | UpdateTempo String
 
 
 init : String -> ( Model, Cmd Msg )
 init path =
-    ( { score = startingScore, startClockValue = Nothing, semiQuaverIndex = Nothing }, loadScoreInstruments startingScore )
+    ( { tempo = 100, score = startingScore, startClockValue = Nothing, semiQuaverIndex = Nothing }, loadScoreInstruments startingScore )
 
 
 
@@ -256,6 +250,13 @@ playNote note instrument =
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
+        UpdateTempo s ->
+            let
+                tempo =
+                    String.toFloat s |> Result.withDefault 100.0
+            in
+                ( { model | tempo = tempo }, Cmd.none )
+
         Start ->
             ( { model | startClockValue = Nothing }, startAudioClock () )
 
@@ -312,7 +313,7 @@ update msg model =
                     elapsedTime model.startClockValue value
 
                 ( index, lateBy ) =
-                    findSemiQuaverIndex elapsed
+                    findSemiQuaverIndex model.tempo elapsed
 
                 command =
                     if (Just (index) /= model.semiQuaverIndex) then
@@ -359,12 +360,34 @@ render instrumentIndex pattern =
         tr [] (instrumentCell :: noteCells)
 
 
+
+{-
+   Thanks to https://stackoverflow.com/a/33860064/453932
+-}
+
+
+sliderView : Model -> Html Msg
+sliderView model =
+    div [ id "slider-control" ]
+        [ input
+            [ type_ "range"
+            , Html.Attributes.min "80"
+            , Html.Attributes.max "140"
+            , value <| toString model.tempo
+            , onInput UpdateTempo
+            ]
+            []
+        , text ((toString model.tempo) ++ " bpms")
+        ]
+
+
 view : Model -> Html Msg
 view model =
     div []
         [ div [] [ h1 [] [ text "Elm Beats!!!" ] ]
         , div []
-            [ button [ onClick Start, disabled (isPlaying model) ] [ text "Start" ]
+            [ sliderView model
+            , button [ onClick Start, disabled (isPlaying model) ] [ text "Start" ]
             , button [ onClick Stop, disabled (not (isPlaying model)) ] [ text "Stop" ]
             , button [ onClick Clear ] [ text "Clear" ]
             ]

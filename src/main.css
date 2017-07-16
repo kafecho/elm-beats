@@ -5,6 +5,10 @@ body {
   color: #DFDFDF;
 }
 
+#slider-control{
+  margin-bottom: 4px;
+}
+
 td{
   border: 1px solid #666666;
   background-color: #858585;
