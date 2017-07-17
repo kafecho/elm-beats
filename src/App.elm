@@ -11,6 +11,7 @@ import Html exposing (..)
 import Html.Events exposing (..)
 import Html.Attributes exposing (..)
 import Array exposing (..)
+import Navigation exposing (..)
 
 
 delay : Float
@@ -33,13 +34,26 @@ computeBarDuration tempo =
 
 type Instrument
     = Kick
+    | Snare
+    | RimShot
     | HiHatClosed
     | HiHatOpen
-    | Snare
-    | Clap
     | Ride
-    | RimShot
+    | Clap
     | Cowbell
+
+
+instruments : List Instrument
+instruments =
+    [ Kick
+    , Snare
+    , RimShot
+    , HiHatClosed
+    , HiHatOpen
+    , Ride
+    , Cowbell
+    , Clap
+    ]
 
 
 
@@ -50,6 +64,137 @@ type alias Pattern =
     { instrument : Instrument
     , notes : Array Int
     }
+
+
+notesToInt : Array Int -> Int
+notesToInt notes =
+    let
+        powers =
+            Array.indexedMap (\index value -> value * 2 ^ (15 - index)) notes
+
+        _ =
+            Debug.log "powers" powers
+    in
+        Array.foldl (\x y -> x + y) 0 powers
+
+
+binaryListFromInt : Int -> List Int -> List Int
+binaryListFromInt value soFar =
+    let
+        divide =
+            value // 2
+
+        remainder =
+            rem value 2
+
+        updatedList =
+            remainder :: soFar
+    in
+        if (divide == 0) then
+            List.reverse updatedList
+        else
+            binaryListFromInt remainder updatedList
+
+
+notesFromIntImpl : Int -> Int -> Array Int -> Array Int
+notesFromIntImpl index src soFar =
+    let
+        power =
+            2 ^ (15 - index)
+
+        division =
+            src // power
+
+        remainder =
+            rem src power
+
+        updated =
+            Array.set index division soFar
+    in
+        if (remainder == 0 || index == 15) then
+            updated
+        else
+            notesFromIntImpl (index + 1) remainder updated
+
+
+notesFromInt : Int -> Array Int
+notesFromInt value =
+    notesFromIntImpl 0 value (Array.repeat 16 0)
+
+
+encodeScoreNotes : Score -> Array Int
+encodeScoreNotes score =
+    Array.map (\pattern -> notesToInt pattern.notes) score
+
+
+encodeHashtag : Float -> Score -> String
+encodeHashtag tempo score =
+    let
+        encodedNotes =
+            Array.map toString (encodeScoreNotes score) |> Array.toList |> String.join (",")
+
+        hashtag =
+            toString (tempo) ++ "," ++ encodedNotes
+
+        _ =
+            Debug.log "Hashtag" hashtag
+    in
+        hashtag
+
+
+decodeTempo tempo =
+    String.toFloat tempo |> Result.withDefault 100
+
+
+decodeHashtag : String -> ( Float, Score )
+decodeHashtag hashtag =
+    let
+        tokens =
+            String.split "," hashtag
+
+        _ =
+            Debug.log "tokens" tokens
+    in
+        case tokens of
+            [] ->
+                ( 100.0, startingScore )
+
+            tempo :: [] ->
+                ( decodeTempo tempo, startingScore )
+
+            tempo :: patterns ->
+                let
+                    _ =
+                        Debug.log "patterns" patterns
+                in
+                    ( decodeTempo tempo, decodePatterns patterns )
+
+
+buildPattern : Int -> Array Instrument -> Int -> Pattern
+buildPattern index instruments int_value =
+    let
+        instrument =
+            Array.get index instruments |> Maybe.withDefault Kick
+
+        notes =
+            notesFromInt int_value
+    in
+        Pattern instrument notes
+
+
+decodePatterns : List String -> Array Pattern
+decodePatterns strings =
+    let
+        as_ints =
+            List.map (\token -> Result.withDefault 0 (String.toInt token)) strings
+
+        instruments_as_array =
+            Array.fromList instruments
+
+        patterns =
+            List.indexedMap (\index int_value -> buildPattern index instruments_as_array int_value) as_ints
+    in
+        Array.fromList patterns
 
 
 
@@ -69,10 +214,6 @@ type alias Score =
 
 emptyPattern =
     Array.repeat 16 0
-
-
-instruments =
-    [ Kick, Snare, HiHatClosed, HiHatOpen, Cowbell, Clap, Ride, RimShot ]
 
 
 startingScore : Score
@@ -189,6 +330,7 @@ type Msg
     | OnClick Instrument Int Int
     | Clear
     | UpdateTempo String
+    | Encode
 
 
 init : String -> ( Model, Cmd Msg )
@@ -256,6 +398,22 @@ update msg model =
                     String.toFloat s |> Result.withDefault 100.0
             in
                 ( { model | tempo = tempo }, Cmd.none )
+
+        Encode ->
+            let
+                encoded =
+                    encodeHashtag model.tempo model.score
+
+                ( tempo, score ) =
+                    decodeHashtag encoded
+
+                _ =
+                    Debug.log "Decoded tempo" tempo
+
+                _ =
+                    Debug.log "Decoded score" score
+            in
+                ( model, Cmd.none )
 
         Start ->
             ( { model | startClockValue = Nothing }, startAudioClock () )
@@ -390,6 +548,7 @@ view model =
             , button [ onClick Start, disabled (isPlaying model) ] [ text "Start" ]
             , button [ onClick Stop, disabled (not (isPlaying model)) ] [ text "Stop" ]
             , button [ onClick Clear ] [ text "Clear" ]
+            , button [ onClick Encode ] [ text "Encode" ]
             ]
         , div [] (Array.toList (Array.indexedMap render model.score))
         ]
