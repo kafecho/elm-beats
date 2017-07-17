@@ -431,7 +431,7 @@ update msg model =
                             encodeHashtag model.tempo model.score
 
                         url =
-                            location.protocol ++ "//" ++ location.host ++ "/#" ++ encoded
+                            location.protocol ++ "//" ++ location.host ++ location.pathname ++ "#" ++ encoded
 
                         _ =
                             Debug.log "hashtag" url
