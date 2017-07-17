@@ -320,7 +320,7 @@ findSemiQuaverIndex tempo elapsed =
 
 
 type alias Model =
-    { tempo : Float, score : Score, startClockValue : Maybe Float, semiQuaverIndex : Maybe Int }
+    { tempo : Float, score : Score, startClockValue : Maybe Float, semiQuaverIndex : Maybe Int, location : Maybe Location }
 
 
 type Msg
@@ -331,11 +331,22 @@ type Msg
     | Clear
     | UpdateTempo String
     | Encode
+    | OnLocationChanged Location
 
 
-init : String -> ( Model, Cmd Msg )
-init path =
-    ( { tempo = 100, score = startingScore, startClockValue = Nothing, semiQuaverIndex = Nothing }, loadScoreInstruments startingScore )
+init : String -> Location -> ( Model, Cmd Msg )
+init path location =
+    let
+        _ =
+            Debug.log "Location" location
+
+        hashtag =
+            String.filter (\char -> char /= '#') location.hash
+
+        ( tempo, score ) =
+            decodeHashtag hashtag
+    in
+        ( { location = Just location, tempo = tempo, score = score, startClockValue = Nothing, semiQuaverIndex = Nothing }, loadScoreInstruments score )
 
 
 
@@ -392,6 +403,16 @@ playNote note instrument =
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
+        OnLocationChanged location ->
+            let
+                hashtag =
+                    String.filter (\char -> char /= '#') location.hash
+
+                ( tempo, score ) =
+                    decodeHashtag hashtag
+            in
+                ( { model | score = score, tempo = tempo }, Cmd.none )
+
         UpdateTempo s ->
             let
                 tempo =
@@ -400,20 +421,22 @@ update msg model =
                 ( { model | tempo = tempo }, Cmd.none )
 
         Encode ->
-            let
-                encoded =
-                    encodeHashtag model.tempo model.score
+            case model.location of
+                Nothing ->
+                    ( model, Cmd.none )
 
-                ( tempo, score ) =
-                    decodeHashtag encoded
+                Just location ->
+                    let
+                        encoded =
+                            encodeHashtag model.tempo model.score
 
-                _ =
-                    Debug.log "Decoded tempo" tempo
+                        url =
+                            location.protocol ++ "//" ++ location.host ++ "/#" ++ encoded
 
-                _ =
-                    Debug.log "Decoded score" score
-            in
-                ( model, Cmd.none )
+                        _ =
+                            Debug.log "hashtag" url
+                    in
+                        ( model, Navigation.newUrl url )
 
         Start ->
             ( { model | startClockValue = Nothing }, startAudioClock () )
@@ -535,7 +558,7 @@ sliderView model =
             , onInput UpdateTempo
             ]
             []
-        , text ((toString model.tempo) ++ " bpms")
+        , text ((toString model.tempo) ++ " bpm")
         ]
 
 
@@ -548,9 +571,12 @@ view model =
             , button [ onClick Start, disabled (isPlaying model) ] [ text "Start" ]
             , button [ onClick Stop, disabled (not (isPlaying model)) ] [ text "Stop" ]
             , button [ onClick Clear ] [ text "Clear" ]
-            , button [ onClick Encode ] [ text "Encode" ]
             ]
         , div [] (Array.toList (Array.indexedMap render model.score))
+        , div []
+            [ text "Share this via a hashtag "
+            , button [ title "Save your pattern in a browser URL", onClick Encode ] [ text "Share" ]
+            ]
         ]
 
 
@@ -560,7 +586,7 @@ subscriptions model =
 
 
 main =
-    Html.programWithFlags
+    Navigation.programWithFlags OnLocationChanged
         { view = view
         , init = init
         , update = update
