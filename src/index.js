@@ -70,9 +70,7 @@ app.ports.playSample.subscribe(function (array){
     var key = array[0];
     var when = array[1];
     var source = audioContext.createBufferSource();
-
     source.buffer = samples[key];
     source.connect(audioContext.destination);
-
     source.start(when);
 });

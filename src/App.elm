@@ -19,6 +19,21 @@ delay =
     0.25
 
 
+minTempo : Float
+minTempo =
+    60.0
+
+
+maxTempo : Float
+maxTempo =
+    220.0
+
+
+defaultTempo : Float
+defaultTempo =
+    100.0
+
+
 
 {- We only deal with 1 bar with a 4/4 signature -}
 
@@ -143,7 +158,7 @@ encodeHashtag tempo score =
 
 
 decodeTempo tempo =
-    String.toFloat tempo |> Result.withDefault 100
+    String.toFloat tempo |> Result.withDefault defaultTempo
 
 
 decodeHashtag : String -> ( Float, Score )
@@ -157,7 +172,7 @@ decodeHashtag hashtag =
     in
         case tokens of
             [] ->
-                ( 100.0, startingScore )
+                ( defaultTempo, startingScore )
 
             tempo :: [] ->
                 ( decodeTempo tempo, startingScore )
@@ -416,7 +431,7 @@ update msg model =
         UpdateTempo s ->
             let
                 tempo =
-                    String.toFloat s |> Result.withDefault 100.0
+                    String.toFloat s |> Result.withDefault defaultTempo
             in
                 ( { model | tempo = tempo }, Cmd.none )
 
@@ -552,8 +567,8 @@ sliderView model =
     div [ id "slider-control" ]
         [ input
             [ type_ "range"
-            , Html.Attributes.min "80"
-            , Html.Attributes.max "140"
+            , Html.Attributes.min (toString minTempo)
+            , Html.Attributes.max (toString maxTempo)
             , value <| toString model.tempo
             , onInput UpdateTempo
             ]
