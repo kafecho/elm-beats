@@ -21,7 +21,7 @@ delay =
 
 minTempo : Float
 minTempo =
-    60.0
+    80.0
 
 
 maxTempo : Float
