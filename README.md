@@ -1,10 +1,14 @@
 Beats by Elm or "Yo Yo. Let's make some noise".
 
+See it [live](http://www.soundcode.co.za/elm-beats-demo/).
+
 ## Overview
 
 This is hopefully the start of a fully fledged audio app written in Elm.
 
-For now, it is just a simple drum machine playing a score which is defined in code. It sequences a bunch of drum kit samples defined in the samples folder. The playback is done via the Web Audio API with Elm taking care of sequencing things so they play at the right time.
+For now, this is just a drum machine. Just click on a grid to create a pattern. Adjust the tempo to your liking and share your creations via a URL fragment. 
+
+Under the hood, the code sequences a bunch of drum kit samples defined in the samples folder. The playback is done via the Web Audio API with Elm taking care of sequencing things so they play at the right time.
 
 This project is bootstrapped with [Create Elm App](https://github.com/halfzebra/create-elm-app).
 Follow the instructions on the web site to install it.
@@ -22,6 +26,4 @@ You will also see any lint errors in the console.
 
 ## Much more to do.
 
-I only spent an afternoon working on this, so there is a lot more to do.
-
-As you can see the UI is rather sparse. At the very least, I would like to add a grid like UI so you can schedule which instrument is playing when.
+If you have any idea for improvements, feel free to file a Github Issue and I will take a look.
