@@ -347,6 +347,7 @@ type Msg
     | UpdateTempo String
     | Encode
     | OnLocationChanged Location
+    | OnInstrumentClicked Instrument
 
 
 init : String -> Location -> ( Model, Cmd Msg )
@@ -418,6 +419,12 @@ playNote note instrument =
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
+        OnInstrumentClicked instrument ->
+            if (not (isPlaying model)) then
+                ( model, playSample ( toString instrument, 0.0 ) )
+            else
+                ( model, Cmd.none )
+
         OnLocationChanged location ->
             let
                 hashtag =
@@ -548,7 +555,7 @@ render instrumentIndex pattern =
             pattern.notes
 
         instrumentCell =
-            td [ class "instrument-cell" ] [ text (toString pattern.instrument) ]
+            td [ class "instrument-cell", onClick (OnInstrumentClicked pattern.instrument) ] [ text (toString pattern.instrument) ]
 
         noteCells =
             Array.toList (Array.indexedMap (createCell pattern.instrument instrumentIndex) notes)
@@ -580,12 +587,12 @@ sliderView model =
 view : Model -> Html Msg
 view model =
     div []
-        [ div [] [ h1 [] [ text "Elm Beats!!!" ] ]
+        [ div [] [ h1 [] [ text "Jozi Rocks!!!" ] ]
         , div []
             [ sliderView model
             , button [ onClick Start, disabled (isPlaying model) ] [ text "Start" ]
             , button [ onClick Stop, disabled (not (isPlaying model)) ] [ text "Stop" ]
-            , button [ onClick Clear ] [ text "Clear" ]
+            , button [ onClick Clear ] [ text "Effacer" ]
             ]
         , div [] (Array.toList (Array.indexedMap render model.score))
         , div []
