@@ -78,6 +78,7 @@ instruments =
 type alias Pattern =
     { instrument : Instrument
     , notes : Array Int
+    , muted : Bool
     }
 
 
@@ -194,7 +195,7 @@ buildPattern index instruments int_value =
         notes =
             notesFromInt int_value
     in
-        Pattern instrument notes
+        Pattern instrument notes False
 
 
 decodePatterns : List String -> Array Pattern
@@ -233,7 +234,7 @@ emptyPattern =
 
 startingScore : Score
 startingScore =
-    Array.fromList (List.map (\instrument -> Pattern instrument emptyPattern) instruments)
+    Array.fromList (List.map (\instrument -> Pattern instrument emptyPattern False) instruments)
 
 
 port startAudioClock : () -> Cmd msg
@@ -348,6 +349,8 @@ type Msg
     | Encode
     | OnLocationChanged Location
     | OnInstrumentClicked Instrument
+    | ClearPattern Int
+    | OnMuteToggled Int
 
 
 init : String -> Location -> ( Model, Cmd Msg )
@@ -371,7 +374,7 @@ init path location =
 
 schedulePatternPlayback : Int -> Float -> Pattern -> Cmd Msg
 schedulePatternPlayback index when pattern =
-    if (Array.get index pattern.notes == Just 1) then
+    if (Array.get index pattern.notes == Just 1 && pattern.muted == False) then
         playSample ( toString pattern.instrument, when )
     else
         Cmd.none
@@ -405,7 +408,7 @@ toggleNote pattern noteIndex =
         newNotes =
             Array.set noteIndex newNote pattern.notes
     in
-        Pattern pattern.instrument newNotes
+        Pattern pattern.instrument newNotes pattern.muted
 
 
 playNote : Int -> Instrument -> Cmd Msg
@@ -419,6 +422,30 @@ playNote note instrument =
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
+        OnMuteToggled index ->
+            case Array.get index model.score of
+                Just pattern ->
+                    let
+                        updatedPattern =
+                            { pattern | muted = not (pattern.muted) }
+                    in
+                        ( { model | score = Array.set index updatedPattern model.score }, Cmd.none )
+
+                Nothing ->
+                    ( model, Cmd.none )
+
+        ClearPattern index ->
+            case Array.get index model.score of
+                Just pattern ->
+                    let
+                        updatedPattern =
+                            { pattern | notes = emptyPattern }
+                    in
+                        ( { model | score = Array.set index updatedPattern model.score }, Cmd.none )
+
+                Nothing ->
+                    ( model, Cmd.none )
+
         OnInstrumentClicked instrument ->
             if (not (isPlaying model)) then
                 ( model, playSample ( toString instrument, 0.0 ) )
@@ -538,14 +565,30 @@ isPlaying model =
     model.startClockValue /= Nothing
 
 
-createCell : Instrument -> Int -> Int -> Int -> Html Msg
-createCell instrument instrumentIndex noteIndex flag =
-    td
-        [ class "note-cell"
-        , classList [ ( "play-on", flag == 1 ), ( "quarter-note-start", noteIndex % 4 == 0 ) ]
-        , onClick (OnNoteClicked instrument instrumentIndex noteIndex)
-        ]
-        []
+createCell : Bool -> Instrument -> Int -> Int -> Int -> Html Msg
+createCell muted instrument instrumentIndex noteIndex flag =
+    let
+        playOnMuted =
+            flag == 1 && muted == True
+
+        playOnUnMuted =
+            flag == 1 && muted == False
+    in
+        td
+            [ class "note-cell"
+            , classList [ ( "play-on", playOnUnMuted ), ( "play-on-muted", playOnMuted ), ( "quarter-note-start", noteIndex % 4 == 0 ) ]
+            , onClick (OnNoteClicked instrument instrumentIndex noteIndex)
+            ]
+            []
+
+
+renderMuteToggle : Pattern -> Html Msg
+renderMuteToggle pattern =
+    if (pattern.muted) then
+        -- text "Un-mute"
+        i [ class "fa fa-volume-off" ] []
+    else
+        i [ class "fa fa-volume-up" ] []
 
 
 render : Int -> Pattern -> Html Msg
@@ -557,10 +600,23 @@ render instrumentIndex pattern =
         instrumentCell =
             td [ class "instrument-cell", onClick (OnInstrumentClicked pattern.instrument) ] [ text (toString pattern.instrument) ]
 
+        muteToggleCell =
+            td [ class "mute-toggle-cell", onClick (OnMuteToggled instrumentIndex) ] [ renderMuteToggle pattern ]
+
         noteCells =
-            Array.toList (Array.indexedMap (createCell pattern.instrument instrumentIndex) notes)
+            Array.toList (Array.indexedMap (createCell pattern.muted pattern.instrument instrumentIndex) notes)
+
+        clearCell =
+            List.singleton
+                (td
+                    [ class "clear-cell", onClick (ClearPattern instrumentIndex) ]
+                    [ i [ class "fa fa-close" ] [] ]
+                )
+
+        cells =
+            instrumentCell :: muteToggleCell :: noteCells
     in
-        tr [] (instrumentCell :: noteCells)
+        tr [] (List.append cells clearCell)
 
 
 

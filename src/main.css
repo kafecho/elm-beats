@@ -23,6 +23,24 @@ td.instrument-cell{
   vertical-align:middle;
 }
 
+td.mute-toggle-cell{
+  color: #DFDFDF;
+  padding-left: 20px;
+  padding-right: 20px;
+  text-align:center;
+  vertical-align:middle;
+  font-size: 22px;
+}
+
+td.clear-cell{
+  color: #DFDFDF;
+  padding-left: 20px;
+  padding-right: 20px;
+  text-align:center;
+  vertical-align:middle;
+  font-size: 18px;
+}
+
 td.note-cell{
   width: 40px;
   height: 40px;
@@ -30,6 +48,10 @@ td.note-cell{
 
 td.play-on{
   background-color: #FED134;
+}
+
+td.play-on-muted{
+  background-color: #CBA134;
 }
 
 td.quarter-note-start{

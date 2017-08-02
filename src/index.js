@@ -1,4 +1,5 @@
 require('./main.css');
+require('./font-awesome.css');
 
 var AudioContext = window.AudioContext || window.webkitAudioContext;
 var audioContext = new AudioContext();
