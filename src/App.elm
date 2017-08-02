@@ -342,7 +342,7 @@ type Msg
     = Start
     | Stop
     | AudioClockUpdate Float
-    | OnClick Instrument Int Int
+    | OnNoteClicked Instrument Int Int
     | Clear
     | UpdateTempo String
     | Encode
@@ -469,7 +469,7 @@ update msg model =
         Clear ->
             ( { model | score = startingScore }, Cmd.none )
 
-        OnClick instrument instrumentIndex noteIndex ->
+        OnNoteClicked instrument instrumentIndex noteIndex ->
             let
                 _ =
                     Debug.log "Instrument" instrument
@@ -543,7 +543,7 @@ createCell instrument instrumentIndex noteIndex flag =
     td
         [ class "note-cell"
         , classList [ ( "play-on", flag == 1 ), ( "quarter-note-start", noteIndex % 4 == 0 ) ]
-        , onClick (OnClick instrument instrumentIndex noteIndex)
+        , onClick (OnNoteClicked instrument instrumentIndex noteIndex)
         ]
         []
 
@@ -587,17 +587,28 @@ sliderView model =
 view : Model -> Html Msg
 view model =
     div []
-        [ div [] [ h1 [] [ text "Jozi Rocks!!!" ] ]
+        [ div [] [ h1 [] [ text "Elm Beats!!!" ] ]
+        , div [] [ h2 [] [ text "A drum machine powered by Elm and the Web Audio API" ] ]
         , div []
             [ sliderView model
             , button [ onClick Start, disabled (isPlaying model) ] [ text "Start" ]
             , button [ onClick Stop, disabled (not (isPlaying model)) ] [ text "Stop" ]
-            , button [ onClick Clear ] [ text "Effacer" ]
+            , button [ onClick Clear ] [ text "Clear" ]
             ]
         , div [] (Array.toList (Array.indexedMap render model.score))
         , div []
             [ text "Share this via a hashtag "
-            , button [ title "Save your pattern in a browser URL", onClick Encode ] [ text "Share" ]
+            , button [ title "Click this and share your browser's URL", onClick Encode ] [ text "Share" ]
+            ]
+        , footer [ id "footer" ]
+            [ div [ id "about-me" ]
+                [ text "An Elm experiment, made in South Africa by "
+                , a [ href "https://twitter.com/gbelrose" ] [ text "Guillaume Belrose" ]
+                ]
+            , div [ id "inspired-by" ]
+                [ text "Heavily inspired by this "
+                , a [ href "https://learningmusic.ableton.com/" ] [ text "awesome Ableton web app !!" ]
+                ]
             ]
         ]
 

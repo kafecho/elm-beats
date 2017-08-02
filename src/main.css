@@ -12,6 +12,7 @@ body {
 td{
   border: 1px solid #666666;
   background-color: #858585;
+  user-select: none;
 }
 
 td.instrument-cell{
@@ -53,4 +54,15 @@ button{
 
 button:disabled{
   color: grey;
+}
+
+a{
+  color: #A8A8A8;
+}
+
+#footer{
+  margin-top: 20px;
+  //width: 100%;
+  //text-align: center;
+  font-size: 0.9em;
 }
