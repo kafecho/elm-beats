@@ -35,12 +35,13 @@ var notifySampleLoadingFailed = function(url){
   console.log("Unable to load the sample @", url);
 };
 
-app.ports.loadSample.subscribe(function ( array ) {
-    var key = array[0];
-    var url = array[1];
-    if (samples[key] == null){
-      var request = new XMLHttpRequest();
-      request.open('GET', url, true);
+app.ports.loadSample.subscribe(function ( array ){
+  var key = array[0];
+  var url = array[1];
+
+  if (samples[key] == null){
+    var request = new XMLHttpRequest();
+    request.open('GET', url, true);
     request.responseType = 'arraybuffer';
     request.onload = function () {
         if (request.status === 200) {
@@ -53,7 +54,7 @@ app.ports.loadSample.subscribe(function ( array ) {
                 function (e){
                     notifySampleLoadingFailed(url);
                 });
-        } else {
+        }else {
             notifySampleLoadingFailed(url);
         }
     }
@@ -63,7 +64,7 @@ app.ports.loadSample.subscribe(function ( array ) {
     }
 
     request.send();
-    }
+  }
 });
 
 
