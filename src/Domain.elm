@@ -14,8 +14,8 @@ type Instrument
     | HiHatClosed
     | HiHatOpen
     | Ride
-    | Clap
     | Cowbell
+    | Clap
 
 
 instruments : List Instrument
@@ -32,7 +32,7 @@ instruments =
 
 
 
-{- A pattern is just an instrument playing a bunch of 16th notes -}
+{- A pattern is just an instrument playing a bunch of 16th notes (semi quavers) -}
 
 
 type alias Pattern =
@@ -58,6 +58,14 @@ type alias SampleUrl =
     String
 
 
+
+{- The model for the drum machine. All fields should be pretty self explanatory.
+   When the drum machine starts to play, we keep track of the initial clock value (startClockValue).
+   Based on the start value, the current clock and the tempo, we can work out which note should be sheduled for playback.
+   This is the semiQuaverIndex.
+-}
+
+
 type alias Model =
     { tempo : Float
     , score : Score
@@ -69,16 +77,17 @@ type alias Model =
 
 type Msg
     = Start
-    | UpdateTempo String
     | Stop
+    | AudioClockUpdate Float
+    | UpdateTempo String
     | ClearScore
+      -- When you click on the instrument name is playback is off, you can hear the sample
+    | OnInstrumentClicked Instrument
+    | OnNoteClicked Instrument Int Int
+    | OnMuteToggled Int
+    | ClearPattern Int
     | Share
     | OnLocationChanged Location
-    | AudioClockUpdate Float
-    | OnNoteClicked Instrument Int Int
-    | OnInstrumentClicked Instrument
-    | ClearPattern Int
-    | OnMuteToggled Int
 
 
 isPlaying : Model -> Bool
@@ -87,7 +96,7 @@ isPlaying model =
 
 
 
--- An empty pattern, 16 semi quavers of silence
+-- An empty pattern, 16 semi quavers of silence.
 
 
 emptyPattern : Array Int
@@ -96,7 +105,7 @@ emptyPattern =
 
 
 
--- The starting score is all instruments playing nothing
+-- The starting score is all instruments playing nothing.
 
 
 startingScore : Score
